@@ -89,4 +89,35 @@ test.describe( 'Editor keyword linking', () => {
 		await page.waitForTimeout( 500 );
 		expect( await blockHtml( page, first ) ).not.toContain( '<a ' );
 	} );
+
+	test( 'a link removed by hand stays removed', async ( { page } ) => {
+		await openNewPost( page );
+		const first = await insertParagraph( page, 'Oud Goud is ook een harmonie.' );
+		await insertParagraph( page, 'Ander blok.' );
+		await expect.poll( () => blockHtml( page, first ) ).toMatch( /<a [^>]*>harmonie<\/a>/ );
+
+		// The writer goes back, removes the link, and moves on again.
+		await page.evaluate( ( id ) => {
+			const be = window.wp.data;
+			be.dispatch( 'core/block-editor' ).selectBlock( id );
+			const content = be.select( 'core/block-editor' ).getBlock( id ).attributes.content;
+			const html = typeof content === 'string' ? content : content.toHTMLString();
+			be.dispatch( 'core/block-editor' ).updateBlockAttributes( id, {
+				content: html.replace( /<a [^>]*>harmonie<\/a>/, 'harmonie' ),
+			} );
+			be.dispatch( 'core/block-editor' ).clearSelectedBlock();
+		}, first );
+
+		await expect.poll( () => blockHtml( page, first ) ).toContain( '<span class="soli-keyword-nolink">harmonie</span>' );
+		await page.waitForTimeout( 300 );
+		const html = await blockHtml( page, first );
+		expect( html ).not.toContain( '<a ' );
+
+		// The toolbar toggle is registered as a rich-text format.
+		const format = await page.evaluate( () => {
+			const f = window.wp.data.select( 'core/rich-text' ).getFormatType( 'soli/keyword-nolink' );
+			return f && { tagName: f.tagName, className: f.className };
+		} );
+		expect( format ).toEqual( { tagName: 'span', className: 'soli-keyword-nolink' } );
+	} );
 } );
