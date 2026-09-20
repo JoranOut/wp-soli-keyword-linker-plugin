@@ -113,6 +113,21 @@ test.describe( 'Editor keyword linking', () => {
 		const html = await blockHtml( page, first );
 		expect( html ).not.toContain( '<a ' );
 
+		// A later occurrence of the same phrase is still linked.
+		await page.evaluate( ( id ) => {
+			const be = window.wp.data;
+			be.dispatch( 'core/block-editor' ).selectBlock( id );
+			const content = be.select( 'core/block-editor' ).getBlock( id ).attributes.content;
+			const current = typeof content === 'string' ? content : content.toHTMLString();
+			be.dispatch( 'core/block-editor' ).updateBlockAttributes( id, {
+				content: current + ' Net als de echte harmonie.',
+			} );
+			be.dispatch( 'core/block-editor' ).clearSelectedBlock();
+		}, first );
+		await expect.poll( () => blockHtml( page, first ) ).toMatch(
+			/<span class="soli-keyword-nolink">harmonie<\/span>.*<a [^>]*>harmonie<\/a>/
+		);
+
 		// The toolbar toggle is registered as a rich-text format.
 		const format = await page.evaluate( () => {
 			const f = window.wp.data.select( 'core/rich-text' ).getFormatType( 'soli/keyword-nolink' );
