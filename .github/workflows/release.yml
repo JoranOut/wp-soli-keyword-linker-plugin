@@ -66,12 +66,12 @@ jobs:
           FLOOR=$(node -p "require('./package.json').wordpress.requiresAtLeast")
           test -n "$WP" && test -n "$FLOOR"
 
-          sed -i -E "s|('tested' => ')[^']*(')|\1${WP}\2|" wp-soli-keyword-linker-plugin.php
-          sed -i -E "s|('requires' => ')[^']*(')|\1${FLOOR}\2|" wp-soli-keyword-linker-plugin.php
+          sed -i -E "s|('tested'[[:space:]]*=>[[:space:]]*')[^']*(')|\1${WP}\2|" wp-soli-keyword-linker-plugin.php
+          sed -i -E "s|('requires'[[:space:]]*=>[[:space:]]*')[^']*(')|\1${FLOOR}\2|" wp-soli-keyword-linker-plugin.php
 
           for pair in "tested:${WP}" "requires:${FLOOR}"; do
             key="${pair%%:*}"; val="${pair#*:}"
-            if ! grep -qF -- "'${key}' => '${val}'" wp-soli-keyword-linker-plugin.php; then
+            if ! grep -qE -- "'${key}'[[:space:]]*=>[[:space:]]*'${val}'" wp-soli-keyword-linker-plugin.php; then
               echo "::error::failed to stamp '${key}' => '${val}'"
               exit 1
             fi
