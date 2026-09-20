@@ -52,6 +52,7 @@ $string-vibrating: url("data:image/svg+xml;charset=utf8,%3Csvg xmlns='http://www
 			// `a { text-decoration-thickness: 1px !important }` and would
 			// otherwise draw their own underline on top of the string.
 			text-decoration: none !important;
+			font-weight: 500;
 			position: relative;
 			padding-bottom: 12px;
 			background: $string-rest 0 100% / 100% 20px no-repeat;
@@ -100,6 +101,24 @@ $string-vibrating: url("data:image/svg+xml;charset=utf8,%3Csvg xmlns='http://www
 					}
 				}
 			}
+		}
+	}
+}
+
+// Front end only: the editor canvas keeps its text cursor on links because
+// clicking there places the caret instead of following the link.
+.wp-block-post-content,
+.entry-content {
+	p a,
+	li a,
+	h1 a,
+	h2 a,
+	h3 a,
+	h4 a,
+	h5 a,
+	h6 a {
+		&:not(.wp-block-button__link):not(.wp-element-button) {
+			cursor: pointer;
 		}
 	}
 }

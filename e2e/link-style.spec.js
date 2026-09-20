@@ -13,6 +13,8 @@ function readStringStyles( locator ) {
 		const before = getComputedStyle( el, '::before' );
 		return {
 			decoration: own.textDecorationLine,
+			weight: own.fontWeight,
+			cursor: own.cursor,
 			isSvgString: own.backgroundImage.startsWith( 'url("data:image/svg+xml' ),
 			vibrating: own.backgroundImage.includes( 'animate' ),
 			noteAnimation: before.animationName,
@@ -37,6 +39,8 @@ test.describe( 'Content link styling: guitar string', () => {
 		const link = page.locator( '#soli-test-link' );
 		const rest = await readStringStyles( link );
 		expect( rest.decoration ).toBe( 'none' );
+		expect( rest.weight ).toBe( '500' );
+		expect( rest.cursor ).toBe( 'pointer' );
 		expect( rest.isSvgString ).toBe( true );
 		expect( rest.vibrating ).toBe( false );
 		expect( rest.noteAnimation ).toBe( 'none' );
@@ -89,6 +93,7 @@ test.describe( 'Content link styling: guitar string', () => {
 		await expect( link ).toBeVisible();
 		const styles = await readStringStyles( link );
 		expect( styles.decoration ).toBe( 'none' );
+		expect( styles.weight ).toBe( '500' );
 		expect( styles.isSvgString ).toBe( true );
 	} );
 } );
