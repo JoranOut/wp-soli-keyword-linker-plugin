@@ -1,0 +1,35 @@
+{
+  "name": "wp-soli-keyword-linker-plugin",
+  "version": "0.1.0",
+  "description": "Turns configured keywords into links while editing and styles content links",
+  "scripts": {
+    "build": "wp-scripts build src/editor.js src/links.js",
+    "start": "wp-scripts start src/editor.js src/links.js",
+    "env:start": "wp-env start",
+    "env:stop": "wp-env stop",
+    "env:reset": "wp-env clean all && wp-env start",
+    "test:e2e": "wp-scripts test-playwright",
+    "test:e2e:debug": "wp-scripts test-playwright --debug",
+    "publish": "npm run build && node ./publish.js",
+    "i18n:make-pot": "wp-env run cli -- sh -c \"cd wp-content/plugins/wp-soli-keyword-linker-plugin && php -d memory_limit=1G /usr/local/bin/wp i18n make-pot . languages/soli-keyword-linker.pot --domain=soli-keyword-linker --exclude=node_modules,e2e,src,package-lock.json\"",
+    "i18n:make-mo": "wp-env run cli -- sh -c \"cd wp-content/plugins/wp-soli-keyword-linker-plugin && php -d memory_limit=1G /usr/local/bin/wp i18n make-mo languages\"",
+    "i18n:build": "npm run i18n:make-pot && npm run i18n:make-mo"
+  },
+  "engines": {
+    "node": ">=24"
+  },
+  "wordpress": {
+    "_comment": "Oldest supported WordPress branch. The e2e suite runs against the newest patch of this branch as well as the newest release, and the release workflows stamp it into the plugin's 'requires'. Raise it when production no longer runs it.",
+    "requiresAtLeast": "6.9"
+  },
+  "author": "Joran Out",
+  "license": "GPL-2.0-or-later",
+  "devDependencies": {
+    "@playwright/test": "^1.62.1",
+    "@wordpress/data": "^10.55.0",
+    "@wordpress/env": "^11.15.0",
+    "@wordpress/rich-text": "^7.55.0",
+    "@wordpress/scripts": "^35.0.0",
+    "archiver": "^7.0.1"
+  }
+}

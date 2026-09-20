@@ -1,0 +1,33 @@
+/**
+ * Content links, on the front end and inside the editor canvas: a thick red
+ * underline. Buttons and navigation are excluded because they are links too
+ * but are not styled as text links.
+ */
+
+:root {
+	--soli-keyword-link-color: #d10000;
+	--soli-keyword-link-thickness: 3px;
+}
+
+.wp-block-post-content,
+.entry-content,
+.editor-styles-wrapper {
+	p a,
+	li a,
+	h1 a,
+	h2 a,
+	h3 a,
+	h4 a,
+	h5 a,
+	h6 a {
+		&:not(.wp-block-button__link):not(.wp-element-button) {
+			// !important because bundled themes such as Twenty Twenty-Five ship
+			// `a { text-decoration-thickness: 1px !important }`; equal weight plus
+			// higher specificity lets this rule win in any theme.
+			text-decoration-line: underline !important;
+			text-decoration-color: var(--soli-keyword-link-color) !important;
+			text-decoration-thickness: var(--soli-keyword-link-thickness) !important;
+			text-underline-offset: 0.15em;
+		}
+	}
+}

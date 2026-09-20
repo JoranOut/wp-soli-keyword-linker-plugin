@@ -1,0 +1,163 @@
+name: Nightly Release
+
+on:
+  schedule:
+    # Run daily at 2:00 AM UTC
+    - cron: '0 2 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  nightly:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          # rev-list --count needs the whole history, not the default shallow clone
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Get current version and build number
+        id: version
+        run: |
+          set -euo pipefail
+          CURRENT_VERSION=$(node -p "require('./package.json').version")
+          # The build number has to be monotonic, because the updater decides
+          # whether to offer an update with version_compare(). A commit count is
+          # monotonic and only moves when commits land, so an idle repo keeps
+          # producing the same version and no site is nagged. A date bumps daily
+          # whether or not anything changed, and a short SHA cannot be used at
+          # all: version_compare() orders SHAs arbitrarily, so roughly half of
+          # all builds would compare as "not newer" and never install.
+          BUILD=$(git rev-list --count HEAD)
+          NIGHTLY_VERSION="${CURRENT_VERSION}-nightly.${BUILD}"
+          echo "nightly_version=${NIGHTLY_VERSION}" >> $GITHUB_OUTPUT
+          echo "build=${BUILD}" >> $GITHUB_OUTPUT
+          echo "date=$(date -u +'%Y-%m-%d')" >> $GITHUB_OUTPUT
+
+      - name: Skip when main has not moved
+        id: guard
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: v${{ steps.version.outputs.nightly_version }}
+        run: |
+          set -euo pipefail
+          # Same commit count means no commits since the last nightly. Re-cutting
+          # an identical release would only churn the tag and re-upload the same
+          # zip, so stop here instead.
+          if gh release view "$TAG" --json tagName >/dev/null 2>&1; then
+            echo "$TAG already exists - no commits since the last nightly, nothing to publish."
+            echo "skip=true" >> $GITHUB_OUTPUT
+          else
+            echo "skip=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Stamp nightly version
+        if: steps.guard.outputs.skip != 'true'
+        env:
+          V: ${{ steps.version.outputs.nightly_version }}
+        run: |
+          set -euo pipefail
+          # publish.js zips what is on disk, so the nightly version has to be
+          # written into the version locations *before* the build. Without this
+          # the zip reports the stable version, no site can tell a nightly from
+          # a stable install, and the updater's channel split cannot engage.
+          # Working tree only - nothing is committed back to the repo.
+          sed -i -E "s|^( \* Version: ).*$|\1${V}|" wp-soli-keyword-linker-plugin.php
+          sed -i -E "s|(SOLI_KEYWORD_LINKER__PLUGIN_VERSION', \")[^\"]*(\")|\1${V}\2|" wp-soli-keyword-linker-plugin.php
+          sed -i -E "s|(~Current Version:[[:space:]]*)[^~]*(~)|\1${V}\2|" README.md
+          # package.json is excluded from the zip, but keep it consistent so a
+          # later change to publish.js's ignore list cannot reintroduce a drift.
+          node -e 'const f="package.json",p=require("./"+f);p.version=process.argv[1];require("fs").writeFileSync(f,JSON.stringify(p,null,2)+"\n")' "$V"
+
+          # Fail loudly rather than shipping a mis-stamped zip.
+          for check in \
+            "wp-soli-keyword-linker-plugin.php: * Version: ${V}" \
+            "wp-soli-keyword-linker-plugin.php:SOLI_KEYWORD_LINKER__PLUGIN_VERSION', \"${V}\"" \
+            "README.md:~Current Version: ${V}~"; do
+            file="${check%%:*}"; needle="${check#*:}"
+            if ! grep -qF -- "$needle" "$file"; then
+              echo "::error::failed to stamp '${needle}' into ${file}"
+              exit 1
+            fi
+          done
+          test "$(node -p "require('./package.json').version")" = "$V"
+          echo "Stamped $V into all version locations."
+
+      - name: Stamp the supported WordPress range
+        if: steps.guard.outputs.skip != 'true'
+        run: |
+          set -euo pipefail
+          # Both ends of the range come from what the e2e suite actually ran:
+          # 'tested' from wordpress.org's current release, 'requires' from the
+          # floor branch declared in package.json. test.yml runs a leg against
+          # each and fails if wp-env installed anything else, so neither number
+          # is a claim nobody checked.
+          WP=$(curl -sf https://api.wordpress.org/core/version-check/1.7/ \
+            | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>console.log(JSON.parse(s).offers[0].current))')
+          FLOOR=$(node -p "require('./package.json').wordpress.requiresAtLeast")
+          test -n "$WP" && test -n "$FLOOR"
+
+          sed -i -E "s|('tested' => ')[^']*(')|\1${WP}\2|" wp-soli-keyword-linker-plugin.php
+          sed -i -E "s|('requires' => ')[^']*(')|\1${FLOOR}\2|" wp-soli-keyword-linker-plugin.php
+
+          for pair in "tested:${WP}" "requires:${FLOOR}"; do
+            key="${pair%%:*}"; val="${pair#*:}"
+            if ! grep -qF -- "'${key}' => '${val}'" wp-soli-keyword-linker-plugin.php; then
+              echo "::error::failed to stamp '${key}' => '${val}'"
+              exit 1
+            fi
+          done
+          echo "Stamped supported WordPress range: ${FLOOR} to ${WP}."
+
+      - name: Build package
+        if: steps.guard.outputs.skip != 'true'
+        run: |
+          # The block build output is not committed, so it has to be built
+          # before publish.js zips it up.
+          npm run build
+          node ./publish.js
+
+      - name: Delete previous nightly release
+        if: steps.guard.outputs.skip != 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Get all releases with 'nightly' in the tag
+          NIGHTLY_RELEASES=$(gh release list --json tagName --jq '.[] | select(.tagName | contains("nightly")) | .tagName')
+          for tag in $NIGHTLY_RELEASES; do
+            echo "Deleting release: $tag"
+            gh release delete "$tag" --yes --cleanup-tag || true
+          done
+
+      - name: Create nightly release
+        if: steps.guard.outputs.skip != 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create "v${{ steps.version.outputs.nightly_version }}" \
+            --title "Nightly Build ${{ steps.version.outputs.nightly_version }}" \
+            --notes "Automated nightly build from main branch.
+
+          **Version:** ${{ steps.version.outputs.nightly_version }}
+          **Build:** ${{ steps.version.outputs.build }} commits on main
+          **Built from:** ${{ github.sha }} on ${{ steps.version.outputs.date }}
+
+          The build number is the commit count, so this version only changes
+          when commits land - an idle repo will not prompt sites to update.
+
+          This is a pre-release build for testing purposes." \
+            --prerelease \
+            *.zip
