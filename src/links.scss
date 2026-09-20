@@ -1,12 +1,39 @@
 /**
- * Content links, on the front end and inside the editor canvas: a thick red
- * underline. Buttons and navigation are excluded because they are links too
- * but are not styled as text links.
+ * Content links as a guitar string.
+ *
+ * Every text link in post content gets a thick red line underneath, drawn as
+ * an SVG background so it can move. On hover the background swaps to the same
+ * SVG with a built-in SMIL animation, which makes the string vibrate for as
+ * long as the pointer stays on the link, while two notes fly out of the string
+ * from the link's two pseudo-elements. Buttons are excluded because they are
+ * links too but are not styled as text links.
+ *
+ * The line colour lives inside the data URIs, so `--soli-keyword-link-color`
+ * only affects the notes; change the `stroke` in both URIs to recolour the
+ * string.
+ *
+ * The SVGs are generated; the string is a quadratic curve whose control point
+ * moves between +4 and -4 on a 100x20 viewBox that stretches to the link's
+ * width. `vector-effect: non-scaling-stroke` keeps the stroke 3px regardless.
  */
+
+$string-rest: url("data:image/svg+xml;charset=utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 -10 100 20' preserveAspectRatio='none'%3E%3Cpath d='M0,0 Q50,0 100,0' fill='none' stroke='%23d10000' stroke-width='3' stroke-linecap='round' vector-effect='non-scaling-stroke'%3E%3C/path%3E%3C/svg%3E");
+$string-vibrating: url("data:image/svg+xml;charset=utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 -10 100 20' preserveAspectRatio='none'%3E%3Cpath d='M0,0 Q50,0 100,0' fill='none' stroke='%23d10000' stroke-width='3' stroke-linecap='round' vector-effect='non-scaling-stroke'%3E%3Canimate attributeName='d' values='M0,0 Q50,0 100,0;M0,0 Q50,4 100,0;M0,0 Q50,0 100,0;M0,0 Q50,-4 100,0;M0,0 Q50,0 100,0' dur='0.25s' repeatCount='indefinite' calcMode='spline' keySplines='0.4 0 0.6 1;0.4 0 0.6 1;0.4 0 0.6 1;0.4 0 0.6 1'/%3E%3C/path%3E%3C/svg%3E");
 
 :root {
 	--soli-keyword-link-color: #d10000;
-	--soli-keyword-link-thickness: 3px;
+}
+
+@keyframes soli-keyword-note-left {
+	0% { opacity: 0; transform: translate(0, 0) rotate(0); }
+	15% { opacity: 1; }
+	100% { opacity: 0; transform: translate(-1.4em, -1.9em) rotate(-25deg); }
+}
+
+@keyframes soli-keyword-note-right {
+	0% { opacity: 0; transform: translate(0, 0) rotate(0); }
+	15% { opacity: 1; }
+	100% { opacity: 0; transform: translate(1.4em, -1.7em) rotate(20deg); }
 }
 
 .wp-block-post-content,
@@ -22,12 +49,57 @@
 	h6 a {
 		&:not(.wp-block-button__link):not(.wp-element-button) {
 			// !important because bundled themes such as Twenty Twenty-Five ship
-			// `a { text-decoration-thickness: 1px !important }`; equal weight plus
-			// higher specificity lets this rule win in any theme.
-			text-decoration-line: underline !important;
-			text-decoration-color: var(--soli-keyword-link-color) !important;
-			text-decoration-thickness: var(--soli-keyword-link-thickness) !important;
-			text-underline-offset: 0.15em;
+			// `a { text-decoration-thickness: 1px !important }` and would
+			// otherwise draw their own underline on top of the string.
+			text-decoration: none !important;
+			position: relative;
+			padding-bottom: 12px;
+			background: $string-rest 0 100% / 100% 20px no-repeat;
+
+			&::before,
+			&::after {
+				position: absolute;
+				bottom: -0.1em;
+				font-size: 0.8em;
+				line-height: 1;
+				color: var(--soli-keyword-link-color);
+				opacity: 0;
+				pointer-events: none;
+			}
+
+			&::before {
+				content: "\266A"; // ♪
+				left: 30%;
+			}
+
+			&::after {
+				content: "\266B"; // ♫
+				left: 60%;
+			}
+
+			&:hover {
+				color: var(--soli-keyword-link-color);
+				background-image: $string-vibrating;
+
+				&::before {
+					animation: soli-keyword-note-left 1.2s ease-out 0.05s infinite;
+				}
+
+				&::after {
+					animation: soli-keyword-note-right 1.4s ease-out 0.3s infinite;
+				}
+			}
+
+			@media (prefers-reduced-motion: reduce) {
+				&:hover {
+					background-image: $string-rest;
+
+					&::before,
+					&::after {
+						animation: none;
+					}
+				}
+			}
 		}
 	}
 }
