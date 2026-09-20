@@ -48,7 +48,7 @@ const matchers = rules
 			postId: rule.postId,
 			regex: new RegExp(
 				'(?<![\\p{L}\\p{N}])' + escapeRegExp( phrase ) + '(?![\\p{L}\\p{N}])',
-				'iu'
+				'giu'
 			),
 		} ) )
 	)
@@ -121,20 +121,30 @@ export function linkPhrases( html, currentPostId ) {
 		if ( matcher.postId === currentPostId ) {
 			continue;
 		}
-		const match = matcher.regex.exec( value.text );
-		if ( ! match ) {
+		// One link per target per block: if this block already links to the
+		// rule's page, leave the other occurrences as plain text.
+		const linksToTarget = ( f ) =>
+			isKeywordLink( f ) && f.attributes && f.attributes.url === matcher.url;
+		if ( hasFormat( value, 0, value.text.length, linksToTarget ) ) {
 			continue;
 		}
-		const start = match.index;
-		const end = start + match[ 0 ].length;
-		if (
-			hasFormat(
-				value,
-				start,
-				end,
-				( f ) => f.type === LINK_FORMAT || f.type === NOLINK_FORMAT
-			)
-		) {
+
+		// First occurrence that is not already a link and not marked. An
+		// occurrence the writer unlinked must not stop a later one from
+		// being linked.
+		const isTaken = ( f ) => f.type === LINK_FORMAT || f.type === NOLINK_FORMAT;
+		let start = -1;
+		let end = -1;
+		matcher.regex.lastIndex = 0;
+		for ( let match; ( match = matcher.regex.exec( value.text ) ); ) {
+			const candidateEnd = match.index + match[ 0 ].length;
+			if ( ! hasFormat( value, match.index, candidateEnd, isTaken ) ) {
+				start = match.index;
+				end = candidateEnd;
+				break;
+			}
+		}
+		if ( start === -1 ) {
 			continue;
 		}
 		value = applyFormat(
