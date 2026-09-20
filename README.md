@@ -18,7 +18,7 @@ Links keywords to pages while you write, for [soli.nl](https://www.soli.nl).
 What it does:
 
 - **Tools → Keyword links** holds a table of rules. Each rule is a set of keywords or phrases and the page they should link to.
-- **In the block editor**, the first occurrence of each phrase in a paragraph, heading or list item becomes a standard WordPress link (the `core/link` format) as soon as you move to another block. Matching ignores case and only matches whole words. Text that is already a link is left alone, and a page never links to itself.
+- **In the block editor**, the first occurrence of each phrase in a paragraph, heading or list item becomes a standard WordPress link (the `core/link` format) as soon as you move to another block. Matching ignores case and only matches whole words. Text that is already a link is left alone, and a page never links to itself. Remove an automatic link by hand and it stays removed: the text gets an invisible mark that the linker respects. The text toolbar has a "No keyword link" toggle to set or clear that mark for any selection.
 - **Content links** on the front end and in the editor canvas are drawn as a red guitar string: a thick red line under the text that vibrates while you hover, with two notes flying out of it. Buttons are excluded. Under "reduced motion" the string stays still. The string colour is baked into the SVG in `src/links.scss`; `--soli-keyword-link-color` colours the notes and the hovered text.
 
 Rules are stored in a single option, `soli_keyword_linker_rules`. Uninstalling removes it.
