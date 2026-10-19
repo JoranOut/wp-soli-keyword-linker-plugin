@@ -66,7 +66,7 @@ test.describe( 'Content link styling: guitar string', () => {
 		expect( heading.isSvgString ).toBe( false );
 		expect( heading.noteGlyph ).not.toBe( '"♪"' );
 
-		// A post template is a list, so its title links sit inside an li.
+		// A heading inside a list item still counts as a heading.
 		const queryTitle = await readStringStyles(
 			page.locator( '.wp-block-post-template .wp-block-post-title a' ).first()
 		);
