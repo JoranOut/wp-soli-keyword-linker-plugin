@@ -5,6 +5,8 @@ const PARAGRAPH =
 	'<!-- wp:paragraph --><p>Ga naar <a href="https://example.com/" id="soli-test-link">de pagina</a>.</p><!-- /wp:paragraph -->';
 const HEADING =
 	'<!-- wp:heading --><h2 class="wp-block-heading"><a href="https://example.com/" id="soli-test-heading-link">Kop</a></h2><!-- /wp:heading -->';
+const QUERY_LOOP =
+	'<!-- wp:query {"queryId":1,"query":{"perPage":1,"postType":"post","inherit":false}} --><div class="wp-block-query"><!-- wp:post-template --><!-- wp:post-title {"level":3,"isLink":true} /--><!-- /wp:post-template --></div><!-- /wp:query -->';
 const BUTTON =
 	'<!-- wp:buttons --><div class="wp-block-buttons"><!-- wp:button --><div class="wp-block-button"><a class="wp-block-button__link wp-element-button" href="https://example.com/" id="soli-test-button">Knop</a></div><!-- /wp:button --></div><!-- /wp:buttons -->';
 
@@ -31,7 +33,7 @@ test.describe( 'Content link styling: guitar string', () => {
 		const post = await createContent( page, nonce, {
 			type: 'posts',
 			title: 'Styled links ' + Date.now(),
-			content: PARAGRAPH + HEADING + BUTTON,
+			content: PARAGRAPH + HEADING + QUERY_LOOP + BUTTON,
 		} );
 
 		await context.clearCookies();
@@ -63,6 +65,13 @@ test.describe( 'Content link styling: guitar string', () => {
 		const heading = await readStringStyles( page.locator( '#soli-test-heading-link' ) );
 		expect( heading.isSvgString ).toBe( false );
 		expect( heading.noteGlyph ).not.toBe( '"♪"' );
+
+		// A post template is a list, so its title links sit inside an li.
+		const queryTitle = await readStringStyles(
+			page.locator( '.wp-block-post-template .wp-block-post-title a' ).first()
+		);
+		expect( queryTitle.isSvgString ).toBe( false );
+		expect( queryTitle.noteGlyph ).not.toBe( '"♪"' );
 	} );
 
 	test( 'reduced motion keeps the string still on hover', async ( { page, context } ) => {
