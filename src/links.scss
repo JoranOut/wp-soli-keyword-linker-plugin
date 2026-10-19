@@ -6,7 +6,8 @@
  * SVG with a built-in SMIL animation, which makes the string vibrate for as
  * long as the pointer stays on the link, while two notes fly out of the string
  * from the link's two pseudo-elements. Buttons are excluded because they are
- * links too but are not styled as text links.
+ * links too but are not styled as text links, and so are links in headings,
+ * where the string clashes with the display type.
  *
  * The line colour lives inside the data URIs, so `--soli-keyword-link-color`
  * only affects the notes; change the `stroke` in both URIs to recolour the
@@ -40,13 +41,7 @@ $string-vibrating: url("data:image/svg+xml;charset=utf8,%3Csvg xmlns='http://www
 .entry-content,
 .editor-styles-wrapper {
 	p a,
-	li a,
-	h1 a,
-	h2 a,
-	h3 a,
-	h4 a,
-	h5 a,
-	h6 a {
+	li a {
 		&:not(.wp-block-button__link):not(.wp-element-button) {
 			// !important because bundled themes such as Twenty Twenty-Five ship
 			// `a { text-decoration-thickness: 1px !important }` and would
@@ -110,13 +105,7 @@ $string-vibrating: url("data:image/svg+xml;charset=utf8,%3Csvg xmlns='http://www
 .wp-block-post-content,
 .entry-content {
 	p a,
-	li a,
-	h1 a,
-	h2 a,
-	h3 a,
-	h4 a,
-	h5 a,
-	h6 a {
+	li a {
 		&:not(.wp-block-button__link):not(.wp-element-button) {
 			cursor: pointer;
 		}

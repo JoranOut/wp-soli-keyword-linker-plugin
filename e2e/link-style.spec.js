@@ -3,6 +3,8 @@ const { loginAndGetNonce, createContent, expectNoPhpDiagnostics } = require( './
 
 const PARAGRAPH =
 	'<!-- wp:paragraph --><p>Ga naar <a href="https://example.com/" id="soli-test-link">de pagina</a>.</p><!-- /wp:paragraph -->';
+const HEADING =
+	'<!-- wp:heading --><h2 class="wp-block-heading"><a href="https://example.com/" id="soli-test-heading-link">Kop</a></h2><!-- /wp:heading -->';
 const BUTTON =
 	'<!-- wp:buttons --><div class="wp-block-buttons"><!-- wp:button --><div class="wp-block-button"><a class="wp-block-button__link wp-element-button" href="https://example.com/" id="soli-test-button">Knop</a></div><!-- /wp:button --></div><!-- /wp:buttons -->';
 
@@ -29,7 +31,7 @@ test.describe( 'Content link styling: guitar string', () => {
 		const post = await createContent( page, nonce, {
 			type: 'posts',
 			title: 'Styled links ' + Date.now(),
-			content: PARAGRAPH + BUTTON,
+			content: PARAGRAPH + HEADING + BUTTON,
 		} );
 
 		await context.clearCookies();
@@ -56,6 +58,11 @@ test.describe( 'Content link styling: guitar string', () => {
 		const button = await readStringStyles( page.locator( '#soli-test-button' ) );
 		expect( button.isSvgString ).toBe( false );
 		expect( button.noteGlyph ).not.toBe( '"♪"' );
+
+		// The string clashes with the display type of headings.
+		const heading = await readStringStyles( page.locator( '#soli-test-heading-link' ) );
+		expect( heading.isSvgString ).toBe( false );
+		expect( heading.noteGlyph ).not.toBe( '"♪"' );
 	} );
 
 	test( 'reduced motion keeps the string still on hover', async ( { page, context } ) => {
