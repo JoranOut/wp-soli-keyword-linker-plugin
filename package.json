@@ -33,6 +33,6 @@
     "@wordpress/i18n": "^7.0.0",
     "@wordpress/rich-text": "^8.0.0",
     "@wordpress/scripts": "^37.0.0",
-    "archiver": "^7.0.1"
+    "archiver": "^8.0.0"
   }
 }
