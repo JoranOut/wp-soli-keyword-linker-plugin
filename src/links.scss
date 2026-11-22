@@ -5,9 +5,9 @@
  * an SVG background so it can move. On hover the background swaps to the same
  * SVG with a built-in SMIL animation, which makes the string vibrate for as
  * long as the pointer stays on the link, while two notes fly out of the string
- * from the link's two pseudo-elements. Buttons are excluded because they are
- * links too but are not styled as text links, and so are links in headings,
- * wherever the heading sits.
+ * from the link's two pseudo-elements. Only plain text links get it: buttons,
+ * links in headings and links wrapping anything but inline formatting (an
+ * image, a card of spans) are left alone.
  *
  * The line colour lives inside the data URIs, so `--soli-keyword-link-color`
  * only affects the notes; change the `stroke` in both URIs to recolour the
@@ -22,6 +22,8 @@ $string-rest: url("data:image/svg+xml;charset=utf8,%3Csvg xmlns='http://www.w3.o
 $string-vibrating: url("data:image/svg+xml;charset=utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 -10 100 20' preserveAspectRatio='none'%3E%3Cpath d='M0,0 Q50,0 100,0' fill='none' stroke='%23d10000' stroke-width='3' stroke-linecap='round' vector-effect='non-scaling-stroke'%3E%3Canimate attributeName='d' values='M0,0 Q50,0 100,0;M0,0 Q50,4 100,0;M0,0 Q50,0 100,0;M0,0 Q50,-4 100,0;M0,0 Q50,0 100,0' dur='0.25s' repeatCount='indefinite' calcMode='spline' keySplines='0.4 0 0.6 1;0.4 0 0.6 1;0.4 0 0.6 1;0.4 0 0.6 1'/%3E%3C/path%3E%3C/svg%3E");
 
 $excluded-ancestors: ":is(h1, h2, h3, h4, h5, h6)";
+$inline-formatting: "strong, em, b, i, s, code, mark, sub, sup";
+$text-link: ":not(.wp-block-button__link):not(.wp-element-button):not(#{$excluded-ancestors} a):not(:has(:not(#{$inline-formatting})))";
 
 :root {
 	--soli-keyword-link-color: #d10000;
@@ -44,7 +46,7 @@ $excluded-ancestors: ":is(h1, h2, h3, h4, h5, h6)";
 .editor-styles-wrapper {
 	p a,
 	li a {
-		&:not(.wp-block-button__link):not(.wp-element-button):not(#{$excluded-ancestors} a) {
+		&#{$text-link} {
 			// !important because bundled themes such as Twenty Twenty-Five ship
 			// `a { text-decoration-thickness: 1px !important }` and would
 			// otherwise draw their own underline on top of the string.
@@ -108,7 +110,7 @@ $excluded-ancestors: ":is(h1, h2, h3, h4, h5, h6)";
 .entry-content {
 	p a,
 	li a {
-		&:not(.wp-block-button__link):not(.wp-element-button):not(#{$excluded-ancestors} a) {
+		&#{$text-link} {
 			cursor: pointer;
 		}
 	}
