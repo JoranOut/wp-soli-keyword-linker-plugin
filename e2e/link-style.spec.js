@@ -7,6 +7,12 @@ const HEADING =
 	'<!-- wp:heading --><h2 class="wp-block-heading"><a href="https://example.com/" id="soli-test-heading-link">Kop</a></h2><!-- /wp:heading -->';
 const QUERY_LOOP =
 	'<!-- wp:query {"queryId":1,"query":{"perPage":1,"postType":"post","inherit":false}} --><div class="wp-block-query"><!-- wp:post-template --><!-- wp:post-title {"level":3,"isLink":true} /--><!-- /wp:post-template --></div><!-- /wp:query -->';
+const BOLD_LINK =
+	'<!-- wp:paragraph --><p>Lees <a href="https://example.com/" id="soli-test-bold-link"><strong>dit</strong> nu</a>.</p><!-- /wp:paragraph -->';
+const IMAGE_LINK =
+	'<!-- wp:list --><ul class="wp-block-list"><!-- wp:list-item --><li><a href="https://example.com/" id="soli-test-image-link"><img src="data:image/gif;base64,R0lGODlhAQABAAAAACw=" alt="" width="40" height="40"></a></li><!-- /wp:list-item --></ul><!-- /wp:list -->';
+const CARD_LINK =
+	'<!-- wp:paragraph --><p><a href="https://example.com/" id="soli-test-card-link"><span class="kicker">Meer</span><span class="title">Oud Goud</span></a></p><!-- /wp:paragraph -->';
 const BUTTON =
 	'<!-- wp:buttons --><div class="wp-block-buttons"><!-- wp:button --><div class="wp-block-button"><a class="wp-block-button__link wp-element-button" href="https://example.com/" id="soli-test-button">Knop</a></div><!-- /wp:button --></div><!-- /wp:buttons -->';
 
@@ -33,7 +39,7 @@ test.describe( 'Content link styling: guitar string', () => {
 		const post = await createContent( page, nonce, {
 			type: 'posts',
 			title: 'Styled links ' + Date.now(),
-			content: PARAGRAPH + HEADING + QUERY_LOOP + BUTTON,
+			content: PARAGRAPH + HEADING + QUERY_LOOP + BOLD_LINK + IMAGE_LINK + CARD_LINK + BUTTON,
 		} );
 
 		await context.clearCookies();
@@ -72,6 +78,17 @@ test.describe( 'Content link styling: guitar string', () => {
 		);
 		expect( queryTitle.isSvgString ).toBe( false );
 		expect( queryTitle.noteGlyph ).not.toBe( '"♪"' );
+
+		// Inline formatting inside a link still reads as text.
+		const bold = await readStringStyles( page.locator( '#soli-test-bold-link' ) );
+		expect( bold.isSvgString ).toBe( true );
+
+		// A link wrapping an image or a card of spans is not a text link.
+		for ( const id of [ '#soli-test-image-link', '#soli-test-card-link' ] ) {
+			const styles = await readStringStyles( page.locator( id ) );
+			expect( styles.isSvgString, id ).toBe( false );
+			expect( styles.noteGlyph, id ).not.toBe( '"♪"' );
+		}
 	} );
 
 	test( 'reduced motion keeps the string still on hover', async ( { page, context } ) => {
