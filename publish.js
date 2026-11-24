@@ -75,6 +75,7 @@ archive.glob('**/*', {
         '.gitignore',
         '*.zip',
         'publish.js',
+        'bin/**',
         '.github/**',
         'e2e/**',
         'playwright.config.js',
